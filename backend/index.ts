@@ -1,12 +1,11 @@
 import { google } from "googleapis";
 
-interface Video {
+interface VideoInfo {
 	id?: string;
 	title?: string;
 	thumbnailUrl?: string;
 	channnelTitle?: string;
 	channnelId?: string;
-	captionsUrl?: any;
 }
 
 const playlistUrl = "PLeMf46ndvGffIJt5KKDa_5SbXZ6F3azhP";
@@ -16,7 +15,7 @@ const youtube = google.youtube({
 	auth: Bun.env.API_KEY,
 });
 
-async function getPlaylistVideos(videos: Video[] = [], nextPageToken: string | undefined = undefined): Promise<Video[]> {
+async function getPlaylistVideos(videos: VideoInfo[] = [], nextPageToken: string | undefined = undefined): Promise<VideoInfo[]> {
 	const res = await youtube.playlistItems.list({
 		part: ["snippet"],
 		playlistId: playlistUrl,
@@ -27,7 +26,7 @@ async function getPlaylistVideos(videos: Video[] = [], nextPageToken: string | u
 	if (res.data.items && res.data.items.length > 0) {
 		for (const item of res.data.items) {
 			const snippet = item.snippet;
-			const video: Video = {
+			const video: VideoInfo = {
 				id: snippet?.resourceId?.videoId ?? undefined,
 				title: snippet?.title ?? undefined,
 				thumbnailUrl: snippet?.thumbnails?.medium?.url ?? undefined,
@@ -46,6 +45,32 @@ async function getPlaylistVideos(videos: Video[] = [], nextPageToken: string | u
 	return videos;
 }
 
-const videos = await getPlaylistVideos();
+async function loadVideos(file: Bun.BunFile) {
+	const currentDate = new Date().toISOString().split("T")[0];
 
-await Bun.file("videos.json").write(JSON.stringify(videos, null, "\t"));
+	if (await file.exists()) {
+		const videos = await file.json();
+
+		if (videos.fetch_date == currentDate) {
+			console.log("already fetched videos today. using local file...");
+
+			return videos;
+		}
+	}
+
+	console.log("fetching videos...");
+
+	const videos = {
+		fetch_date: currentDate,
+		videos: await getPlaylistVideos()
+	};
+
+	console.log("writing videos to file...");
+	await file.write(JSON.stringify(videos, null, "\t"));
+
+	return videos;
+}
+
+const videos = await loadVideos(Bun.file("videos.json"));
+
+console.log(videos.videos.length);
