@@ -1,4 +1,5 @@
 import ytdlpWrap from "yt-dlp-wrap";
+import readline from "readline";
 
 interface VideoInfo {
 	id?: string;
@@ -40,6 +41,7 @@ async function loadVideoMetadata(file: Bun.BunFile) {
 			title: videoArr[1],
 			thumbnail: `https://i.ytimg.com/vi/${videoArr[0]}/mqdefault.jpg`,
 			uploader: videoArr[2],
+			subtitles_path: null,
 		});
 	}
 
@@ -49,6 +51,43 @@ async function loadVideoMetadata(file: Bun.BunFile) {
 	return videos;
 }
 
-const videos = await loadVideoMetadata(Bun.file("videos.json"));
+async function downloadSubtitles(file: Bun.BunFile) {
+	const videos = await loadVideoMetadata(file);
 
-console.log(videos.videos.length);
+	for (let i = 0; i < videos.videos.length; i++) {
+		const video = videos.videos[i];
+
+		readline.cursorTo(process.stdout, 0);
+		process.stdout.write(`downloading transcript ${i + 1} of ${videos.videos.length}...`);
+
+		if (!video.subtitles_path) {
+			const stdout = await ytdlp.execPromise([
+				"--skip-download",
+				"--write-sub",
+				"--write-auto-sub",
+				"--sub-lang",
+				"en",
+				"--sub-format",
+				"srt",
+				"-o",
+				"subtitles/%(id)s.%(ext)s",
+				`https://www.youtube.com/watch?v=${video.id}`,
+			]);
+
+			if (stdout.includes("There are no subtitles for the requested languages")) {
+				continue;
+			}
+
+			const destinationStdout = "[download] Destination: ";
+			const destination = stdout.split("\n").find(line => line.startsWith(destinationStdout))?.slice(destinationStdout.length);
+
+			video.subtitles_path = destination;
+
+			await file.write(JSON.stringify(videos, null, "\t"));
+		}
+	}
+
+	process.stdout.write("\n");
+}
+
+await downloadSubtitles(Bun.file("videos.json"));
