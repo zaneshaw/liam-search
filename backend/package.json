@@ -1,15 +1,15 @@
 {
   "name": "liam-search-backend",
   "module": "index.ts",
-  "type": "module",
-  "private": true,
   "devDependencies": {
     "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
+  "private": true,
+  "type": "module",
   "dependencies": {
-    "googleapis": "^166.0.0"
+    "yt-dlp-wrap": "^2.3.12"
   }
 }

@@ -1,4 +1,4 @@
-import { google } from "googleapis";
+import ytdlpWrap from "yt-dlp-wrap";
 
 interface VideoInfo {
 	id?: string;
@@ -8,69 +8,47 @@ interface VideoInfo {
 	channnelId?: string;
 }
 
+const ytdlp = new ytdlpWrap("./bin/yt-dlp.exe");
 const playlistUrl = "PLeMf46ndvGffIJt5KKDa_5SbXZ6F3azhP";
 
-const youtube = google.youtube({
-	version: "v3",
-	auth: Bun.env.API_KEY,
-});
-
-async function getPlaylistVideos(videos: VideoInfo[] = [], nextPageToken: string | undefined = undefined): Promise<VideoInfo[]> {
-	const res = await youtube.playlistItems.list({
-		part: ["snippet"],
-		playlistId: playlistUrl,
-		maxResults: 50,
-		pageToken: nextPageToken,
-	});
-
-	if (res.data.items && res.data.items.length > 0) {
-		for (const item of res.data.items) {
-			const snippet = item.snippet;
-			const video: VideoInfo = {
-				id: snippet?.resourceId?.videoId ?? undefined,
-				title: snippet?.title ?? undefined,
-				thumbnailUrl: snippet?.thumbnails?.medium?.url ?? undefined,
-				channnelTitle: snippet?.videoOwnerChannelTitle ?? undefined,
-				channnelId: snippet?.videoOwnerChannelId ?? undefined,
-			};
-
-			videos.push(video);
-		}
-
-		if (res.data.nextPageToken) {
-			await getPlaylistVideos(videos, res.data.nextPageToken);
-		}
-	}
-
-	return videos;
-}
-
-async function loadVideos(file: Bun.BunFile) {
-	const currentDate = new Date().toISOString().split("T")[0];
+async function loadVideoMetadata(file: Bun.BunFile) {
+	const currentDate = new Date().toISOString().split("T")[0] as string;
 
 	if (await file.exists()) {
 		const videos = await file.json();
 
 		if (videos.fetch_date == currentDate) {
-			console.log("already fetched videos today. using local file...");
+			console.log("already loaded video metadata today. loading from cache...");
 
 			return videos;
 		}
 	}
 
-	console.log("fetching videos...");
+	console.log("loading video metadata...");
 
-	const videos = {
+	const playlistRaw = await ytdlp.execPromise(["--flat-playlist", "--print", "%(id)s\t%(title)s\t%(uploader)s", playlistUrl]);
+
+	const videos: { fetch_date: string; videos: any[] } = {
 		fetch_date: currentDate,
-		videos: await getPlaylistVideos()
+		videos: [],
 	};
 
-	console.log("writing videos to file...");
+	for (const video of playlistRaw.trim().split("\n")) {
+		const videoArr = video.split("\t");
+		videos.videos.push({
+			id: videoArr[0],
+			title: videoArr[1],
+			thumbnail: `https://i.ytimg.com/vi/${videoArr[0]}/mqdefault.jpg`,
+			uploader: videoArr[2],
+		});
+	}
+
+	console.log(`writing to ${file.name}...`);
 	await file.write(JSON.stringify(videos, null, "\t"));
 
 	return videos;
 }
 
-const videos = await loadVideos(Bun.file("videos.json"));
+const videos = await loadVideoMetadata(Bun.file("videos.json"));
 
 console.log(videos.videos.length);
