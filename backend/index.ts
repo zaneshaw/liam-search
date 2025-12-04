@@ -125,7 +125,28 @@ async function downloadSubtitles(file: Bun.BunFile) {
 	process.stdout.write("\n");
 }
 
+async function checkMissingSubtitles(file: Bun.BunFile) {
+	if (!(await file.exists())) {
+		console.error(`${file.name} doesn't exist. can't check for missing subtitles.`);
+		return;
+	}
+
+	const videos = await file.json();
+	const missingSubtitlesIds: any[] = [];
+
+	for (const video of videos.videos) {
+		if (!video.subtitles_path) {
+			missingSubtitlesIds.push({ uploader: video.uploader, id: video.id });
+		}
+	}
+
+	if (missingSubtitlesIds.length > 0) {
+		console.error(`${missingSubtitlesIds.length} videos have missing subtitles`);
+	} else {
 		console.log("no videos have missing subtitles");
+	}
+
+	return missingSubtitlesIds;
 }
 
 await downloadSubtitles(Bun.file("videos.json"));
