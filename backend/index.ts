@@ -11,37 +11,56 @@ interface VideoInfo {
 
 const ytdlp = new ytdlpWrap("./bin/yt-dlp.exe");
 const playlistUrl = "PLeMf46ndvGffIJt5KKDa_5SbXZ6F3azhP";
+const cookiesPath = "cookies.txt";
 
 async function loadVideoMetadata(file: Bun.BunFile) {
 	const currentDate = new Date().toISOString().split("T")[0] as string;
 
-	if (await file.exists()) {
-		const videos = await file.json();
-
-		if (videos.fetch_date == currentDate) {
-			console.log("already loaded video metadata today. loading from cache...");
-
-			return videos;
-		}
-	}
-
-	console.log("loading video metadata...");
-
-	const playlistRaw = await ytdlp.execPromise(["--flat-playlist", "--print", "%(id)s\t%(title)s\t%(uploader)s", playlistUrl]);
-
-	const videos: { fetch_date: string; videos: any[] } = {
+	let videos: { fetch_date: string; videos: any[] } = {
 		fetch_date: currentDate,
 		videos: [],
 	};
 
+	if (await file.exists()) {
+		const _videos = await file.json();
+
+		if (_videos.fetch_date == currentDate) {
+			console.log("already loaded video metadata today. loading from cache...");
+
+			return _videos;
+		}
+
+		videos = _videos;
+	}
+
+	console.log("loading video metadata...");
+
+	const playlistRaw = await ytdlp.execPromise([
+		"--flat-playlist",
+		"--print",
+		"%(id)s\t%(title)s\t%(uploader)s",
+		"--cookies",
+		cookiesPath,
+		"--extractor-args",
+		"youtubetab:skip=authcheck",
+		playlistUrl,
+	]);
+
 	for (const video of playlistRaw.trim().split("\n")) {
 		const videoArr = video.split("\t");
-		videos.videos.push({
+		const videoIndex = videos.videos.findIndex((x) => x.id == videoArr[0]);
+		const videoObj = {
 			id: videoArr[0],
 			title: videoArr[1],
 			thumbnail: `https://i.ytimg.com/vi/${videoArr[0]}/mqdefault.jpg`,
 			uploader: videoArr[2],
-		});
+		};
+
+		if (videoIndex > -1) {
+			Object.assign(videos.videos[videoIndex], videoObj);
+		} else {
+			videos.videos.push(videoObj);
+		}
 	}
 
 	console.log(`writing to ${file.name}...`);
@@ -57,7 +76,7 @@ async function downloadSubtitles(file: Bun.BunFile) {
 		const video = videos.videos[i];
 
 		readline.cursorTo(process.stdout, 0);
-		process.stdout.write(`downloading transcript ${i + 1} of ${videos.videos.length}...`);
+		process.stdout.write(`downloading subtitles ${i + 1} of ${videos.videos.length}...`);
 
 		if (!video.subtitles_path) {
 			const stdout = await ytdlp.execPromise([
@@ -68,6 +87,8 @@ async function downloadSubtitles(file: Bun.BunFile) {
 				"en",
 				"--sub-format",
 				"srt",
+				"--cookies",
+				cookiesPath,
 				"-o",
 				"subtitles/%(id)s.%(ext)s",
 				`https://www.youtube.com/watch?v=${video.id}`,
@@ -78,7 +99,10 @@ async function downloadSubtitles(file: Bun.BunFile) {
 			}
 
 			const destinationStdout = "[download] Destination: ";
-			const destination = stdout.split("\n").find(line => line.startsWith(destinationStdout))?.slice(destinationStdout.length);
+			const destination = stdout
+				.split("\n")
+				.find((line) => line.startsWith(destinationStdout))
+				?.slice(destinationStdout.length);
 
 			video.subtitles_path = destination;
 
@@ -89,4 +113,10 @@ async function downloadSubtitles(file: Bun.BunFile) {
 	process.stdout.write("\n");
 }
 
+		console.log("no videos have missing subtitles");
+}
+
 await downloadSubtitles(Bun.file("videos.json"));
+const missingSubtitlesIds = await checkMissingSubtitles(Bun.file("videos.json"));
+
+console.log(missingSubtitlesIds);
