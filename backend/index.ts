@@ -41,6 +41,8 @@ async function loadVideoMetadata(file: Bun.BunFile) {
 		"--flat-playlist",
 		"--print",
 		"%(id)s\t%(title)s\t%(uploader)s",
+		"--encoding",
+		"utf-8",
 		"--cookies",
 		cookiesPath,
 		"--extractor-args",
