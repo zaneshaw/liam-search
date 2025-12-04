@@ -41,7 +41,6 @@ async function loadVideoMetadata(file: Bun.BunFile) {
 			title: videoArr[1],
 			thumbnail: `https://i.ytimg.com/vi/${videoArr[0]}/mqdefault.jpg`,
 			uploader: videoArr[2],
-			subtitles_path: null,
 		});
 	}
 
