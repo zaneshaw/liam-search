@@ -1,6 +1,7 @@
 import ytdlpWrap from "yt-dlp-wrap";
 import readline from "readline";
 import { Glob } from "bun";
+import MiniSearch from "minisearch";
 
 interface VideoInfo {
 	id?: string;
@@ -124,6 +125,8 @@ async function downloadSubtitles(file: Bun.BunFile) {
 	}
 
 	process.stdout.write("\n");
+
+	return videos;
 }
 
 async function checkMissingSubtitles(file: Bun.BunFile) {
@@ -177,11 +180,54 @@ async function convertSubtitles() {
 	return outArr;
 }
 
-await downloadSubtitles(Bun.file("videos.json"));
-const missingSubtitlesIds = await checkMissingSubtitles(Bun.file("videos.json"));
+async function setup() {
+	await downloadSubtitles(Bun.file("videos.json"));
+	const missingSubtitlesIds = await checkMissingSubtitles(Bun.file("videos.json"));
 
-console.log("converting subtitles...");
-const convertedSubtitles = await convertSubtitles();
-console.log(`writing ${convertedSubtitles.length} converted subtitles...`);
-await Bun.file("subtitles_converted_flat.json").write(JSON.stringify(convertedSubtitles));
-console.log("done");
+	console.log("converting subtitles...");
+	const convertedSubtitles = await convertSubtitles();
+
+	console.log(`caching ${convertedSubtitles.length} converted subtitles...`);
+	await Bun.file("subtitles_converted_flat.json").write(JSON.stringify(convertedSubtitles));
+
+	console.log("building index...");
+
+	const miniSearch = new MiniSearch({
+		fields: ["text"],
+		storeFields: ["video_id", "time_start", "time_end", "text"],
+	});
+
+	miniSearch.addAll(convertedSubtitles);
+
+	console.log("ready!");
+
+	return miniSearch;
+}
+
+function search(query: string, videos: any, miniSearch: MiniSearch, maxResults: number = 9) {
+	const msResults = miniSearch.search(query, { fuzzy: 0.2 }).slice(0, maxResults);
+	const results = msResults.map((result) => {
+		const metadata = videos.videos.find((video: any) => video.id == result.video_id);
+
+		return {
+			score: result.score,
+			text: result.text,
+			video_id: result.video_id,
+			time_start: result.time_start,
+			time_end: result.time_end,
+			title: metadata.title,
+			thumbnail: metadata.thumbnail,
+			uploader: metadata.uploader,
+		};
+	});
+
+	return {
+		message: "search successful!",
+		results: results,
+	};
+}
+
+const miniSearch = await setup();
+const videos = await Bun.file("videos.json").json();
+
+console.log(search("night night liam", videos, miniSearch));
