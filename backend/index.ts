@@ -1,5 +1,6 @@
 import ytdlpWrap from "yt-dlp-wrap";
 import readline from "readline";
+import { Glob } from "bun";
 
 interface VideoInfo {
 	id?: string;
@@ -149,7 +150,38 @@ async function checkMissingSubtitles(file: Bun.BunFile) {
 	return missingSubtitlesIds;
 }
 
+async function convertSubtitles() {
+	const outArr: any[] = [];
+
+	let id = 0;
+	for (const fileName of new Glob("subtitles/*").scanSync()) {
+		const file = Bun.file(fileName);
+		const raw = (await file.text()).trim();
+		const arr = raw.split("\n\n").map((chunk) => {
+			const lines = chunk.split("\n");
+			const times = lines[1]!.split(" --> ");
+			id++;
+
+			return {
+				id: id,
+				video_id: file.name?.split("\\")[1]?.split(".")[0], // lol
+				time_start: times[0],
+				time_end: times[1],
+				text: lines[2],
+			};
+		});
+
+		outArr.push(...arr);
+	}
+
+	return outArr;
+}
+
 await downloadSubtitles(Bun.file("videos.json"));
 const missingSubtitlesIds = await checkMissingSubtitles(Bun.file("videos.json"));
 
-console.log(missingSubtitlesIds);
+console.log("converting subtitles...");
+const convertedSubtitles = await convertSubtitles();
+console.log(`writing ${convertedSubtitles.length} converted subtitles...`);
+await Bun.file("subtitles_converted_flat.json").write(JSON.stringify(convertedSubtitles));
+console.log("done");
