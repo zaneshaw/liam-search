@@ -70,7 +70,19 @@ async function loadVideoMetadata(file: Bun.BunFile) {
 }
 
 async function downloadSubtitles(file: Bun.BunFile) {
+	const currentDate = new Date().toISOString().split("T")[0] as string;
+
 	const videos = await loadVideoMetadata(file);
+
+	if (await file.exists()) {
+		const _videos = await file.json();
+
+		if (_videos.fetch_date == currentDate) {
+			console.log("already downloaded subtitles today. skipping...");
+
+			return;
+		}
+	}
 
 	for (let i = 0; i < videos.videos.length; i++) {
 		const video = videos.videos[i];
