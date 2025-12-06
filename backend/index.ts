@@ -2,6 +2,8 @@ import ytdlpWrap from "yt-dlp-wrap";
 import readline from "readline";
 import { Glob } from "bun";
 import MiniSearch from "minisearch";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
 
 interface VideoInfo {
 	id?: string;
@@ -15,6 +17,7 @@ const ytdlp = new ytdlpWrap("./bin/yt-dlp.exe");
 const playlistUrl = "PLeMf46ndvGffIJt5KKDa_5SbXZ6F3azhP";
 const cookiesPath = "cookies.txt";
 
+// scuffed. needs rewrite
 async function loadVideoMetadata(file: Bun.BunFile) {
 	const currentDate = new Date().toISOString().split("T")[0] as string;
 
@@ -33,6 +36,7 @@ async function loadVideoMetadata(file: Bun.BunFile) {
 		}
 
 		videos = _videos;
+		videos.fetch_date = currentDate;
 	}
 
 	console.log("loading video metadata...");
@@ -73,6 +77,7 @@ async function loadVideoMetadata(file: Bun.BunFile) {
 	return videos;
 }
 
+// scuffed. needs rewrite
 async function downloadSubtitles(file: Bun.BunFile) {
 	const currentDate = new Date().toISOString().split("T")[0] as string;
 
@@ -81,7 +86,7 @@ async function downloadSubtitles(file: Bun.BunFile) {
 	if (await file.exists()) {
 		const _videos = await file.json();
 
-		if (_videos.fetch_date == currentDate) {
+		if (_videos.subtitle_fetch_date == currentDate) {
 			console.log("already downloaded subtitles today. skipping...");
 
 			return;
@@ -128,7 +133,9 @@ async function downloadSubtitles(file: Bun.BunFile) {
 
 	process.stdout.write("\n");
 
-	return videos;
+	videos.subtitle_fetch_date = currentDate;
+
+	await file.write(JSON.stringify(videos, null, "\t"));
 }
 
 async function checkMissingSubtitles(file: Bun.BunFile) {
@@ -232,4 +239,20 @@ function search(query: string, videos: any, miniSearch: MiniSearch, maxResults: 
 const miniSearch = await setup();
 const videos = await Bun.file("videos.json").json();
 
-console.log(search("night night liam", videos, miniSearch));
+const app = new Hono();
+app.use(cors());
+
+// needs validation and sanitisation
+app.get("/search", (c) => {
+	const { query, maxResults } = c.req.query();
+
+	if (query) {
+		const res = search(query, videos, miniSearch, maxResults ? parseInt(maxResults as string) : undefined);
+		return c.json(res);
+	} else {
+		c.status(400);
+		return c.json({});
+	}
+});
+
+export default app;

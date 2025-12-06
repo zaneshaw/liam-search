@@ -1,6 +1,9 @@
 {
   "name": "liam-search-backend",
   "module": "index.ts",
+  "scripts": {
+    "dev": "bun run index.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -10,6 +13,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "hono": "^4.10.7",
     "minisearch": "^7.2.0",
     "yt-dlp-wrap": "^2.3.12"
   }
