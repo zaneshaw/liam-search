@@ -1,9 +1,9 @@
 import ytdlpWrap from "yt-dlp-wrap";
 import readline from "readline";
 import { Glob } from "bun";
-import MiniSearch from "minisearch";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import FlexSearch, { Document } from "flexsearch";
 
 interface VideoInfo {
 	id?: string;
@@ -201,29 +201,51 @@ async function setup() {
 
 	console.log("building index...");
 
-	const miniSearch = new MiniSearch({
-		fields: ["text"],
-		storeFields: ["video_id", "time_start", "time_end", "text"],
+	const index = new FlexSearch.Document({
+		tokenize: "forward",
+		context: {
+			resolution: 9,
+			depth: 2,
+			bidirectional: true,
+		},
+		encoder: FlexSearch.Charset.Normalize,
+		document: {
+			store: true,
+			index: "text",
+		},
 	});
 
-	miniSearch.addAll(convertedSubtitles);
+	for (const subtitle of convertedSubtitles) {
+		index.add(subtitle);
+	}
 
 	console.log("ready!");
 
-	return miniSearch;
+	return index;
 }
 
-function search(query: string, videos: any, miniSearch: MiniSearch, maxResults: number = 9) {
-	const msResults = miniSearch.search(query, { fuzzy: 0.2 }).slice(0, maxResults);
-	const results = msResults.map((result) => {
-		const metadata = videos.videos.find((video: any) => video.id == result.video_id);
+function search(query: string, videos: any, index: Document, maxResults: number = 9) {
+	const fsResults = new FlexSearch.Resolver({
+		index: index,
+		query: query,
+		pluck: "text",
+	})
+		.resolve({
+			enrich: true,
+		})
+		.slice(0, maxResults);
+
+	const results = fsResults.map((result) => {
+		if (!result.doc) return;
+
+		const metadata = videos.videos.find((video: any) => video.id == result.doc!.video_id);
 
 		return {
-			score: result.score,
-			text: result.text,
-			video_id: result.video_id,
-			time_start: result.time_start,
-			time_end: result.time_end,
+			score: result.doc!.score,
+			text: result.doc!.text,
+			video_id: result.doc!.video_id,
+			time_start: result.doc!.time_start,
+			time_end: result.doc!.time_end,
 			title: metadata.title,
 			thumbnail: metadata.thumbnail,
 			uploader: metadata.uploader,
@@ -236,7 +258,7 @@ function search(query: string, videos: any, miniSearch: MiniSearch, maxResults: 
 	};
 }
 
-const miniSearch = await setup();
+const index = await setup();
 const videos = await Bun.file("videos.json").json();
 
 const app = new Hono();
@@ -247,7 +269,7 @@ app.get("/search", (c) => {
 	const { query, maxResults } = c.req.query();
 
 	if (query) {
-		const res = search(query, videos, miniSearch, maxResults ? parseInt(maxResults as string) : undefined);
+		const res = search(query, videos, index, maxResults ? parseInt(maxResults as string) : undefined);
 		return c.json(res);
 	} else {
 		c.status(400);
