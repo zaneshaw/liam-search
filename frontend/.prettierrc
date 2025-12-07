@@ -4,5 +4,5 @@
 	"useTabs": true,
 	"printWidth": 200,
 	"endOfLine": "lf",
-	"plugins": ["prettier-plugin-svelte"]
+	"plugins": ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"]
 }
