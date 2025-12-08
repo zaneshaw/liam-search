@@ -90,11 +90,17 @@ export async function downloadSubtitles(file: Bun.BunFile) {
 		}
 	}
 
+	if (!process.stdout.isTTY) {
+		console.log(`downloading ${videos.videos.length} subtitles...`)
+	}
+
 	for (let i = 0; i < videos.videos.length; i++) {
 		const video = videos.videos[i];
 
-		readline.cursorTo(process.stdout, 0);
-		process.stdout.write(`downloading subtitles ${i + 1} of ${videos.videos.length}...`);
+		if (process.stdout.isTTY) {
+			readline.cursorTo(process.stdout, 0);
+			process.stdout.write(`downloading subtitles ${i + 1} of ${videos.videos.length}...`);
+		}
 
 		if (!video.subtitles_path) {
 			const stdout = await ytdlp.execPromise([
@@ -128,7 +134,11 @@ export async function downloadSubtitles(file: Bun.BunFile) {
 		}
 	}
 
-	process.stdout.write("\n");
+	if (process.stdout.isTTY) {
+		process.stdout.write("\n");
+	} else {
+		console.log("finished downloading subtitles")
+	}
 
 	videos.subtitle_fetch_date = currentDate;
 
