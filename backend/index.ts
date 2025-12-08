@@ -26,13 +26,13 @@ function search(query: string, videos: any, index: Document, maxResults: number 
 
 		const metadata = videos.videos.find((video: any) => video.id == result.doc!.video_id);
 
-		const textBeforeDoc = index.get(result.doc!.id as number - 1);
+		const textBeforeDoc = index.get((result.doc!.id as number) - 1);
 		let textBefore = null;
 		if (textBeforeDoc && textBeforeDoc.video_id == result.doc!.video_id) {
 			textBefore = textBeforeDoc.text;
 		}
 
-		const textAfterDoc = index.get(result.doc!.id as number + 1);
+		const textAfterDoc = index.get((result.doc!.id as number) + 1);
 		let textAfter = null;
 		if (textAfterDoc && textAfterDoc.video_id == result.doc!.video_id) {
 			textAfter = textAfterDoc.text;
@@ -116,7 +116,10 @@ async function setup() {
 	return index;
 }
 
-serve(app);
+serve({
+	fetch: app.fetch,
+	port: 8059,
+});
 
 index = await setup();
 videos = await Bun.file("videos.json").json();
