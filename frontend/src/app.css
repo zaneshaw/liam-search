@@ -1,1 +1,34 @@
 @import "tailwindcss";
+
+@theme {
+	--color-background: #151a22;
+	--color-liam-background: #232b38;
+	--color-liam-skin: #a7aab1;
+	--color-liam-hat: #aa0202;
+	--color-liam-hair: #0a0b0f;
+}
+
+* {
+	@apply box-border;
+}
+
+html {
+	@apply bg-background mx-auto box-border min-h-screen w-[500px] py-10 text-white;
+	scrollbar-gutter: stable;
+}
+
+input[type="text"] {
+	@apply bg-liam-background outline-0;
+}
+
+.link {
+	@apply text-blue-500 hover:text-blue-400;
+}
+
+.btn {
+	@apply bg-liam-background cursor-pointer rounded-xs px-2 py-1 outline-1 outline-gray-700;
+}
+
+.light-outline {
+	@apply outline-1 outline-gray-700;
+}
