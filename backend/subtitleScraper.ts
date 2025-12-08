@@ -10,7 +10,7 @@ interface VideoInfo {
 	channnelId?: string;
 }
 
-const ytdlp = new ytdlpWrap("./bin/yt-dlp.exe");
+const ytdlp = new ytdlpWrap("./bin/yt-dlp");
 const playlistUrl = "PLeMf46ndvGffIJt5KKDa_5SbXZ6F3azhP";
 const cookiesPath = "cookies.txt";
 
