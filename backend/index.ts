@@ -1,9 +1,10 @@
 import FlexSearch, { Document } from "flexsearch";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-
-import { downloadSubtitles, checkMissingSubtitles, convertSubtitles } from "./subtitleScraper";
 import { serve } from "@hono/node-server";
+import { getConnInfo } from "hono/cloudflare-workers";
+import { downloadSubtitles, checkMissingSubtitles, convertSubtitles } from "./subtitleScraper";
+import { logBuffer } from "./log";
 
 // sucks
 let index: Document;
@@ -39,7 +40,6 @@ function search(query: string, videos: any, index: Document, maxResults: number 
 		}
 
 		return {
-			score: result.doc!.score,
 			text: result.doc!.text,
 			text_before: textBefore,
 			text_after: textAfter,
@@ -61,12 +61,29 @@ function search(query: string, videos: any, index: Document, maxResults: number 
 const app = new Hono();
 app.use(cors());
 
-app.get("/status", (c) => c.json({ status: status }));
+app.get("/status", (c) => {
+	const info = getConnInfo(c);
+
+	logBuffer.push({
+		time: Date.now(),
+		text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/status,STATUS=400) status is "${status}".`,
+	});
+
+	return c.json({ status: status });
+});
 
 // needs validation and sanitisation
 app.get("/search", (c) => {
+	const info = getConnInfo(c);
+
 	if (status != "ready") {
 		c.status(503);
+
+		logBuffer.push({
+			time: Date.now(),
+			text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/search,STATUS=503) api is not ready.`,
+		});
+
 		return c.json({ message: "api is not ready" });
 	}
 
@@ -74,9 +91,21 @@ app.get("/search", (c) => {
 
 	if (query) {
 		const res = search(query, videos, index, maxResults ? parseInt(maxResults as string) : undefined);
+
+		logBuffer.push({
+			time: Date.now(),
+			text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/search,STATUS=200) ${res.message} ${res.results.length} results.`,
+		});
+
 		return c.json(res);
 	} else {
 		c.status(400);
+
+		logBuffer.push({
+			time: Date.now(),
+			text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/search,STATUS=400) empty query.`,
+		});
+
 		return c.json({});
 	}
 });
@@ -86,12 +115,24 @@ async function setup() {
 	const missingSubtitlesIds = await checkMissingSubtitles(Bun.file("videos.json"));
 
 	console.log("converting subtitles...");
+	logBuffer.push({
+		time: Date.now(),
+		text: `(SYSTEM) converting subtitles...`,
+	});
 	const convertedSubtitles = await convertSubtitles();
 
 	console.log(`caching ${convertedSubtitles.length} converted subtitles...`);
+	logBuffer.push({
+		time: Date.now(),
+		text: `(SYSTEM) caching ${convertedSubtitles.length} converted subtitles...`,
+	});
 	await Bun.file("subtitles_converted_flat.json").write(JSON.stringify(convertedSubtitles));
 
 	console.log("building index...");
+	logBuffer.push({
+		time: Date.now(),
+		text: "(SYSTEM) building index...",
+	});
 
 	const index = new FlexSearch.Document({
 		tokenize: "forward",
@@ -112,6 +153,10 @@ async function setup() {
 	}
 
 	console.log("ready!");
+	logBuffer.push({
+		time: Date.now(),
+		text: "(SYSTEM) ready!",
+	});
 
 	return index;
 }
