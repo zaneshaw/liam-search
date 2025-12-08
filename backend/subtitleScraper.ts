@@ -1,6 +1,7 @@
 import ytdlpWrap from "yt-dlp-wrap";
 import readline from "readline";
 import { Glob } from "bun";
+import path from "path";
 
 interface VideoInfo {
 	id?: string;
@@ -183,7 +184,7 @@ export async function convertSubtitles() {
 
 			return {
 				id: id,
-				video_id: file.name?.split("\\")[1]?.split(".")[0], // lol
+				video_id: path.parse(file.name as string).name.split(".")[0], // lol
 				time_start: times[0],
 				time_end: times[1],
 				text: lines[2],
