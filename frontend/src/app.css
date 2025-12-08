@@ -13,7 +13,7 @@
 }
 
 html {
-	@apply bg-background mx-auto box-border min-h-screen w-[500px] py-10 text-white;
+	@apply bg-background box-border min-h-screen py-10 text-white;
 	scrollbar-gutter: stable;
 }
 

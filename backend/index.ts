@@ -26,9 +26,23 @@ function search(query: string, videos: any, index: Document, maxResults: number 
 
 		const metadata = videos.videos.find((video: any) => video.id == result.doc!.video_id);
 
+		const textBeforeDoc = index.get(result.doc!.id as number - 1);
+		let textBefore = null;
+		if (textBeforeDoc && textBeforeDoc.video_id == result.doc!.video_id) {
+			textBefore = textBeforeDoc.text;
+		}
+
+		const textAfterDoc = index.get(result.doc!.id as number + 1);
+		let textAfter = null;
+		if (textAfterDoc && textAfterDoc.video_id == result.doc!.video_id) {
+			textAfter = textAfterDoc.text;
+		}
+
 		return {
 			score: result.doc!.score,
 			text: result.doc!.text,
+			text_before: textBefore,
+			text_after: textAfter,
 			video_id: result.doc!.video_id,
 			time_start: result.doc!.time_start,
 			time_end: result.doc!.time_end,
