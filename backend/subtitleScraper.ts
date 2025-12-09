@@ -13,7 +13,7 @@ interface VideoInfo {
 }
 
 const ytdlp = new ytdlpWrap("./bin/yt-dlp");
-const playlistUrl = "PLeMf46ndvGffIJt5KKDa_5SbXZ6F3azhP";
+const playlistUrls = ["PLeMf46ndvGffIJt5KKDa_5SbXZ6F3azhP", "PL4p5tSr0nlvikGvf0bhqFuQoFAH7Iw9Ay"];
 const cookiesPath = "cookies.txt";
 
 // scuffed. needs rewrite
@@ -48,20 +48,26 @@ async function loadVideoMetadata(file: Bun.BunFile) {
 		text: "(SYSTEM) loading video metadata...",
 	});
 
-	const playlistRaw = await ytdlp.execPromise([
-		"--flat-playlist",
-		"--print",
-		"%(id)s\t%(title)s\t%(uploader)s",
-		"--encoding",
-		"utf-8",
-		"--cookies",
-		cookiesPath,
-		"--extractor-args",
-		"youtubetab:skip=authcheck",
-		playlistUrl,
-	]);
+	let playlistRaw: string[] = [];
 
-	for (const video of playlistRaw.trim().split("\n")) {
+	for (const url of playlistUrls) {
+		const raw = await ytdlp.execPromise([
+			"--flat-playlist",
+			"--print",
+			"%(id)s\t%(title)s\t%(uploader)s",
+			"--encoding",
+			"utf-8",
+			"--cookies",
+			cookiesPath,
+			"--extractor-args",
+			"youtubetab:skip=authcheck",
+			url,
+		]);
+
+		playlistRaw.push(...raw.trim().split("\n"));
+	}
+
+	for (const video of playlistRaw) {
 		const videoArr = video.split("\t");
 		const videoIndex = videos.videos.findIndex((x) => x.id == videoArr[0]);
 		const videoObj = {
@@ -110,7 +116,7 @@ export async function downloadSubtitles(file: Bun.BunFile) {
 	}
 
 	if (!process.stdout.isTTY) {
-		console.log(`downloading ${videos.videos.length} subtitles...`)
+		console.log(`downloading ${videos.videos.length} subtitles...`);
 		logBuffer.push({
 			time: Date.now(),
 			text: `(SYSTEM) downloading ${videos.videos.length} subtitles...`,
@@ -160,7 +166,7 @@ export async function downloadSubtitles(file: Bun.BunFile) {
 	if (process.stdout.isTTY) {
 		process.stdout.write("\n");
 	} else {
-		console.log("finished downloading subtitles")
+		console.log("finished downloading subtitles");
 	}
 
 	logBuffer.push({
