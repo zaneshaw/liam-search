@@ -94,7 +94,7 @@ app.get("/search", (c) => {
 
 		logBuffer.push({
 			time: Date.now(),
-			text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/search,STATUS=200) ${res.message} ${res.results.length} results.`,
+			text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/search,STATUS=200) ${res.message} ${res.results.length} results for "${query}".`,
 		});
 
 		return c.json(res);
