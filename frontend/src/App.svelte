@@ -9,7 +9,7 @@
 	$inspect(data);
 
 	async function doSearch(query: string, maxResults?: number) {
-		const res = await fetch(`https://liamsearch-backend.squidee.dev/search?query=${query}&max_results=${maxResults || ""}`);
+		const res = await fetch(`https://api.liamsear.ch/search?query=${query}&max_results=${maxResults || ""}`);
 		data = await res.json();
 	}
 </script>
@@ -20,7 +20,7 @@
 			<img src="logo.png" alt="Liam logo" class="h-16" />
 			<h1>Liam Search</h1>
 		</div>
-		<p class="text-gray-500">made by <a href="https://squidee.dev/" target="_blank" class="link">squidee_</a> in chat</p>
+		<p class="text-gray-500">made by <a href="https://squidee.dev/" target="_blank" class="link">squidee_</a> from chat</p>
 	</div>
 	<form
 		onsubmit={(e) => {
@@ -118,8 +118,8 @@
 							loading a lot of youtube embeds is really laggy for some reason and has crashed my browser multiple times during development. to mitigate this, i've temporarily limited the
 							amount of results. you can bypass this limit for now by using this URL:
 						</p>
-						<a href="https://liamsearch-backend.squidee.dev/search?query=hello world&max_results=20" target="_blank" class="text-sm link"
-							>https://liamsearch-backend.squidee.dev/search?query=hello world&max_results=20</a
+						<a href="https://api.liamsear.ch/search?query=hello world&max_results=20" target="_blank" class="text-sm link"
+							>https://api.liamsear.ch/search?query=hello world&max_results=20</a
 						>
 					</div>
 				</div>
