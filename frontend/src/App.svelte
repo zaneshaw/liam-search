@@ -91,9 +91,8 @@
 				<div class="flex flex-col gap-2">
 					<h2>about</h2>
 					<p>
-						this website lets you search for phrases spoken on Liam's stream, using transcripts from VODs uploaded to youtube from August 2023 onwards. the name "Liam Search" and domain
-						name "liamsear.ch" are directly inspired by <a href="https://yardsear.ch/" target="_blank" class="link">yardsear.ch</a>, but this website was mainly
-						<a href="https://www.youtube.com/@CtrlaltdeliciousHD" target="_blank" class="link">CtrlAltDelicious'</a> idea.
+						this website lets you search for phrases spoken on Liam's stream using transcripts from VODs uploaded to youtube from August 2023 onwards and top clip compilations back to
+						2017. the name "Liam Search" and domain name "liamsear.ch" are directly inspired by <a href="https://yardsear.ch/" target="_blank" class="link">yardsear.ch</a>.
 					</p>
 				</div>
 				<div class="flex flex-col gap-2">
@@ -101,33 +100,37 @@
 					<div>
 						<p class="text-white italic">why can't i search swear words?</p>
 						<p>
-							the index is built from youtube subtitles, which replace pretty much every swear word with "[ __ ]". i'm planning to transcribe the vods myself at some point so i don't
+							the index is built from youtube subtitles, which replace pretty much every swear word with "[ __ ]". i'm planning to transcribe the vods locally at some point so i don't
 							have to depend on youtube's transcription.
 						</p>
 					</div>
 					<div>
 						<p class="text-white italic">which vods are indexed?</p>
 						<p>
-							every vod in <a href="https://www.youtube.com/playlist?list=PLeMf46ndvGffIJt5KKDa_5SbXZ6F3azhP" target="_blank" class="link">this playlist</a> by
-							<a href="https://www.youtube.com/@LiamUnofficialVODs-dz8it" target="_blank" class="link">Liam Unofficial VODs</a> minus about 30 videos that have unpublished subtitles.
+							every video in this <a href="https://www.youtube.com/playlist?list=PLeMf46ndvGffIJt5KKDa_5SbXZ6F3azhP" target="_blank" class="link">vod playlist</a> by
+							<a href="https://www.youtube.com/@LiamUnofficialVODs-dz8it" target="_blank" class="link">Liam Unofficial VODs</a> (minus about 30 videos that have unpublished subtitles)
+							and this <a href="https://www.youtube.com/playlist?list=PL4p5tSr0nlvikGvf0bhqFuQoFAH7Iw9Ay" target="_blank" class="link">top clips playlist</a> by
+							<a href="https://www.youtube.com/@ACIDMONEY" target="_blank" class="link">ACIDMONEY</a>.
 						</p>
 					</div>
 					<div>
 						<p class="text-white italic">why are results limited to 9?</p>
 						<p>
 							loading a lot of youtube embeds is really laggy for some reason and has crashed my browser multiple times during development. to mitigate this, i've temporarily limited the
-							amount of results. you can bypass this limit for now by using this URL:
+							amount of results. you can bypass this limit for now by using this URL: <a
+								href="https://api.liamsear.ch/search?query=hello world&max_results=20"
+								target="_blank"
+								class="link text-sm">https://api.liamsear.ch/search?query=hello world&max_results=20</a
+							>
 						</p>
-						<a href="https://api.liamsear.ch/search?query=hello world&max_results=20" target="_blank" class="text-sm link"
-							>https://api.liamsear.ch/search?query=hello world&max_results=20</a
-						>
 					</div>
 				</div>
 				<div class="flex flex-col gap-2">
 					<h2>indexing process</h2>
 					<ol class="ml-4.5 list-decimal">
 						<li>
-							video metadata is fetched from <a href="https://www.youtube.com/playlist?list=PLeMf46ndvGffIJt5KKDa_5SbXZ6F3azhP" target="_blank" class="link">this playlist</a> with yt-dlp
+							video metadata is fetched from the <a href="https://www.youtube.com/playlist?list=PLeMf46ndvGffIJt5KKDa_5SbXZ6F3azhP" target="_blank" class="link">vod playlist</a> and the
+							<a href="https://www.youtube.com/playlist?list=PL4p5tSr0nlvikGvf0bhqFuQoFAH7Iw9Ay" target="_blank" class="link">top clips playlist</a> with yt-dlp
 						</li>
 						<li>srt subtitles are downloaded from these videos with yt-dlp</li>
 						<li>
@@ -138,7 +141,7 @@
 							<a href="https://github.com/nextapps-de/flexsearch" target="_blank" class="link">FlexSearch</a> then indexes each subtitle chunk and stores the index in memory with the following
 							configuration:
 						</li>
-						<pre>
+						<pre class="italic">
 &#123;
 	tokenize: "forward",
 	context: &#123; resolution: 9, depth: 2, bidirectional: true &#125;,
