@@ -7,7 +7,7 @@
 	$inspect(data);
 
 	async function doSearch(query: string, maxResults?: number) {
-		const res = await fetch(`http://localhost:3000/search?query=${query}&max_results=${maxResults || ""}`);
+		const res = await fetch(`https://liamsearch-backend.squidee.dev/search?query=${query}&max_results=${maxResults || ""}`);
 		data = await res.json();
 	}
 </script>
