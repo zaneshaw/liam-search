@@ -12,7 +12,7 @@ interface VideoInfo {
 	channnelId?: string;
 }
 
-const ytdlp = new ytdlpWrap("./bin/yt-dlp");
+const ytdlp = new ytdlpWrap(process.platform == "win32" ? "./bin/yt-dlp.exe" : "./bin/yt-dlp");
 const playlistUrls = ["PLeMf46ndvGffIJt5KKDa_5SbXZ6F3azhP", "PL4p5tSr0nlvikGvf0bhqFuQoFAH7Iw9Ay"];
 const cookiesPath = "cookies.txt";
 
