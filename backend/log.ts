@@ -17,8 +17,10 @@ setInterval(async () => {
 		.join("\n");
 
 	if (!(await exists("./logs"))) await mkdir("./logs");
+
 	// might have logs from previous day come over within 5 seconds
-	await appendFile(`./logs/${new Date().toJSON().slice(0, 10)}.txt`, `${logLines}\n`);
+	const dateArr = new Date().toLocaleDateString("en-AU").split("/");
+	await appendFile(`./logs/${dateArr[2]}-${dateArr[1]}-${dateArr[0]}.txt`, `${logLines}\n`);
 
 	logBuffer = [];
 }, 5000);
