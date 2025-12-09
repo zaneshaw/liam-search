@@ -124,6 +124,13 @@
 							>
 						</p>
 					</div>
+					<div>
+						<p class="text-white italic">why am i getting no results?</p>
+						<p>
+							while punctuation like commas are ignored in the index (e.g. "hello, world" = "hello world"), internal punctuation is not (e.g. "don't" ≠ "dont"). make sure you are using internal
+							punctuation in your search query with words like "won't", "don't", "can't", etc.
+						</p>
+					</div>
 				</div>
 				<div class="flex flex-col gap-2">
 					<h2>indexing process</h2>
