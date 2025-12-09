@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./fonts.css";
 
 @theme {
 	--color-background: #151a22;
@@ -8,13 +9,25 @@
 	--color-liam-hair: #0a0b0f;
 }
 
+:root {
+	color-scheme: dark;
+}
+
 * {
-	@apply box-border;
+	@apply box-border font-[MADE];
 }
 
 html {
-	@apply bg-background box-border min-h-screen py-10 text-white;
+	@apply bg-background box-border min-h-screen text-white;
 	scrollbar-gutter: stable;
+}
+
+h1 {
+	@apply text-5xl font-semibold text-white;
+}
+
+h2 {
+	@apply text-2xl text-white;
 }
 
 input[type="text"] {
@@ -22,7 +35,7 @@ input[type="text"] {
 }
 
 .link {
-	@apply text-blue-500 hover:text-blue-400;
+	@apply cursor-pointer font-medium text-white;
 }
 
 .btn {

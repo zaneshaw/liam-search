@@ -1,0 +1,55 @@
+@font-face {
+	font-family: MADE;
+	font-style: normal;
+	font-weight: 200;
+	font-display: swap;
+	src: url("/fonts/made_thin.otf") format("opentype");
+}
+
+@font-face {
+	font-family: MADE;
+	font-style: normal;
+	font-weight: 300;
+	font-display: swap;
+	src: url("/fonts/made_light.otf") format("opentype");
+}
+
+@font-face {
+	font-family: MADE;
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("/fonts/made_regular.otf") format("opentype");
+}
+
+@font-face {
+	font-family: MADE;
+	font-style: normal;
+	font-weight: 600;
+	font-display: swap;
+	src: url("/fonts/made_medium.otf") format("opentype");
+}
+
+@font-face {
+	font-family: MADE;
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url("/fonts/made_bold.otf") format("opentype");
+}
+
+@font-face {
+	font-family: MADE;
+	font-style: normal;
+	font-weight: 800;
+	font-display: swap;
+	src: url("/fonts/made_extrabold.otf") format("opentype");
+}
+
+@font-face {
+	font-family: MADE;
+	font-style: normal;
+	font-weight: 900;
+	font-display: swap;
+	src: url("/fonts/made_black.otf") format("opentype");
+}
