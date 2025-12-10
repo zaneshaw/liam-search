@@ -77,7 +77,7 @@ app.get("/search", async (c) => {
 			searchWorker,
 			{
 				type: "SEARCH",
-				query: encodeURI(query),
+				query: query,
 				maxResults: maxResults ? parseInt(maxResults as string) : undefined,
 			},
 			"SEARCH_RESULT"
@@ -85,7 +85,7 @@ app.get("/search", async (c) => {
 
 		logBuffer.push({
 			time: Date.now(),
-			text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/search,STATUS=200) ${res.message} ${res.results.length} results for "${encodeURI(query)}".`,
+			text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/search,STATUS=200) ${res.message} ${res.results.length} results for "${query}".`,
 		});
 
 		return c.json(res);
