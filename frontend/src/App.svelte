@@ -181,6 +181,10 @@
 						<p class="text-white italic">why do only the first few results have embeds?</p>
 						<p>loading more than like 20 youtube embeds freezes your browser, so for now only the first 5 results will have a youtube embed, while the rest will just be a thumbnail.</p>
 					</div>
+					<div>
+						<p class="text-white italic">why are results not updating?</p>
+						<p>i have a rate limit in place that limits requests to the '/search' endpoint to 5 every 10 seconds. if you exceed this, you get temporarily blocked for 10 seconds.</p>
+					</div>
 				</div>
 				<div class="flex flex-col gap-2">
 					<h2>indexing process</h2>
