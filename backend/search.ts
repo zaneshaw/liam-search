@@ -1,6 +1,6 @@
-import FlexSearch, { Document } from "flexsearch";
+import FlexSearch from "flexsearch";
 import { downloadSubtitles, checkMissingSubtitles, convertSubtitles } from "./subtitleScraper";
-import { logBuffer } from "./log";
+import { log, LogType } from "./log";
 
 declare var self: Worker;
 
@@ -23,25 +23,13 @@ async function setup() {
 	await downloadSubtitles(Bun.file("videos.json"));
 	const missingSubtitlesIds = await checkMissingSubtitles(Bun.file("videos.json"));
 
-	console.log("converting subtitles...");
-	logBuffer.push({
-		time: Date.now(),
-		text: `(SYSTEM) converting subtitles...`,
-	});
+	log(LogType.System, "converting subtitles...");
 	const convertedSubtitles = await convertSubtitles();
 
-	console.log(`caching ${convertedSubtitles.length} converted subtitles...`);
-	logBuffer.push({
-		time: Date.now(),
-		text: `(SYSTEM) caching ${convertedSubtitles.length} converted subtitles...`,
-	});
+	log(LogType.System, `caching ${convertedSubtitles.length} converted subtitles...`);
 	await Bun.file("subtitles_converted_flat.json").write(JSON.stringify(convertedSubtitles));
 
-	console.log("building index...");
-	logBuffer.push({
-		time: Date.now(),
-		text: "(SYSTEM) building index...",
-	});
+	log(LogType.System, "building index...");
 
 	for (const subtitle of convertedSubtitles) {
 		index.add(subtitle);

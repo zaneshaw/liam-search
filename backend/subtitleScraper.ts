@@ -2,7 +2,7 @@ import ytdlpWrap from "yt-dlp-wrap";
 import readline from "readline";
 import { Glob } from "bun";
 import path from "path";
-import { logBuffer } from "./log";
+import { log, LogType } from "./log";
 
 interface VideoInfo {
 	id?: string;
@@ -29,11 +29,7 @@ async function loadVideoMetadata(file: Bun.BunFile) {
 		const _videos = await file.json();
 
 		if (_videos.fetch_date == currentDate) {
-			console.log("already loaded video metadata today. loading from cache...");
-			logBuffer.push({
-				time: Date.now(),
-				text: "(SYSTEM) already loaded video metadata today. loading from cache...",
-			});
+			log(LogType.System, "already loaded video metadata today. loading from cache...");
 
 			return _videos;
 		}
@@ -42,11 +38,7 @@ async function loadVideoMetadata(file: Bun.BunFile) {
 		videos.fetch_date = currentDate;
 	}
 
-	console.log("loading video metadata...");
-	logBuffer.push({
-		time: Date.now(),
-		text: "(SYSTEM) loading video metadata...",
-	});
+	log(LogType.System, "loading video metadata...");
 
 	let playlistRaw: string[] = [];
 
@@ -84,11 +76,7 @@ async function loadVideoMetadata(file: Bun.BunFile) {
 		}
 	}
 
-	console.log(`writing to ${file.name}...`);
-	logBuffer.push({
-		time: Date.now(),
-		text: `(SYSTEM) writing to ${file.name}...`,
-	});
+	log(LogType.System, `writing to ${file.name}...`);
 
 	await file.write(JSON.stringify(videos, null, "\t"));
 
@@ -105,22 +93,14 @@ export async function downloadSubtitles(file: Bun.BunFile) {
 		const _videos = await file.json();
 
 		if (_videos.subtitle_fetch_date == currentDate) {
-			console.log("already downloaded subtitles today. skipping...");
-			logBuffer.push({
-				time: Date.now(),
-				text: "(SYSTEM) already downloaded subtitles today. skipping...",
-			});
+			log(LogType.System, "already downloaded subtitles today. skipping...");
 
 			return;
 		}
 	}
 
 	if (!process.stdout.isTTY) {
-		console.log(`downloading ${videos.videos.length} subtitles...`);
-		logBuffer.push({
-			time: Date.now(),
-			text: `(SYSTEM) downloading ${videos.videos.length} subtitles...`,
-		});
+		log(LogType.System, `downloading ${videos.videos.length} subtitles...`);
 	}
 
 	for (let i = 0; i < videos.videos.length; i++) {
@@ -169,10 +149,7 @@ export async function downloadSubtitles(file: Bun.BunFile) {
 		console.log("finished downloading subtitles");
 	}
 
-	logBuffer.push({
-		time: Date.now(),
-		text: "(SYSTEM) finished downloading subtitles",
-	});
+	log(LogType.System, "finished downloading subtitles.");
 
 	videos.subtitle_fetch_date = currentDate;
 
@@ -196,16 +173,9 @@ export async function checkMissingSubtitles(file: Bun.BunFile) {
 
 	if (missingSubtitlesIds.length > 0) {
 		console.warn(`${missingSubtitlesIds.length} videos have missing subtitles`);
-		logBuffer.push({
-			time: Date.now(),
-			text: `(SYSTEM WARNING) ${missingSubtitlesIds.length} videos have missing subtitles`,
-		});
+		log(LogType.System, `${missingSubtitlesIds.length} videos have missing subtitles`);
 	} else {
-		console.log("no videos have missing subtitles");
-		logBuffer.push({
-			time: Date.now(),
-			text: "(SYSTEM) no videos have missing subtitles",
-		});
+		log(LogType.System, "no videos have missing subtitles");
 	}
 
 	return missingSubtitlesIds;

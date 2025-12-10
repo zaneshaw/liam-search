@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 import { getConnInfo } from "hono/cloudflare-workers";
-import { logBuffer } from "./log";
+import { log, LogType } from "./log";
 
 // sucks
 let status: "loading" | "ready" | "indexing_error" = "loading";
@@ -31,11 +31,7 @@ searchWorker.addEventListener("message", async (e) => {
 
 	if (type == "READY") {
 		status = "ready";
-		console.log("ready!");
-		logBuffer.push({
-			time: Date.now(),
-			text: "(SYSTEM) ready!",
-		});
+		log(LogType.System, "ready!");
 	} else if (type == "INDEXING_ERROR") {
 		status = "indexing_error";
 	}
@@ -47,10 +43,7 @@ app.use(cors());
 app.get("/status", (c) => {
 	const info = getConnInfo(c);
 
-	// logBuffer.push({
-	// 	time: Date.now(),
-	// 	text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/status,STATUS=400) status is "${status}".`,
-	// });
+	// log(LogType.API, `status is '${status}'`, { remote_ip: info.remote.address || "UNKNOWN", endpoint: "/status", status: "200" });
 
 	return c.json({ status: status });
 });
@@ -62,10 +55,7 @@ app.get("/search", async (c) => {
 	if (status != "ready") {
 		c.status(503);
 
-		logBuffer.push({
-			time: Date.now(),
-			text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/search,STATUS=503) api is not ready.`,
-		});
+		log(LogType.API, "api is not ready.", { remote_ip: info.remote.address || "UNKNOWN", endpoint: "/search", status: "503" });
 
 		return c.json({ message: "api is not ready" });
 	}
@@ -83,19 +73,13 @@ app.get("/search", async (c) => {
 			"SEARCH_RESULT"
 		);
 
-		logBuffer.push({
-			time: Date.now(),
-			text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/search,STATUS=200) ${res.message} ${res.results.length} results for "${query}".`,
-		});
+		log(LogType.API, `${res.message} ${res.results.length} results for '${query}'.`, { remote_ip: info.remote.address || "UNKNOWN", endpoint: "/search", status: "200" });
 
 		return c.json(res);
 	} else {
 		c.status(400);
 
-		logBuffer.push({
-			time: Date.now(),
-			text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/search,STATUS=400) empty query.`,
-		});
+		log(LogType.API, "empty query.", { remote_ip: info.remote.address || "UNKNOWN", endpoint: "/search", status: "400" });
 
 		return c.json({});
 	}
