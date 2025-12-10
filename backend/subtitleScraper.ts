@@ -172,7 +172,6 @@ export async function checkMissingSubtitles(file: Bun.BunFile) {
 	}
 
 	if (missingSubtitlesIds.length > 0) {
-		console.warn(`${missingSubtitlesIds.length} videos have missing subtitles`);
 		log(LogType.System, `${missingSubtitlesIds.length} videos have missing subtitles`);
 	} else {
 		log(LogType.System, "no videos have missing subtitles");

@@ -38,7 +38,7 @@ async function setup() {
 	return index;
 }
 
-function search(query: string, maxResults: number = 9) {
+function search(query: string, maxResults: number = 30) {
 	const fsResults = new FlexSearch.Resolver({
 		index: index,
 		query: query,
@@ -47,7 +47,7 @@ function search(query: string, maxResults: number = 9) {
 		.resolve({
 			enrich: true,
 		})
-		.slice(0, maxResults);
+		.slice(0, Math.min(maxResults, 99));
 
 	const results = fsResults.map((result) => {
 		if (!result.doc) return;

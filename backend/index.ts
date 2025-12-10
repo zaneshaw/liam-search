@@ -60,7 +60,7 @@ app.get("/search", async (c) => {
 		return c.json({ message: "api is not ready" });
 	}
 
-	const { query, maxResults } = c.req.query();
+	const { query, max_results } = c.req.query();
 
 	if (query) {
 		const res: any = await workerFunction(
@@ -68,7 +68,7 @@ app.get("/search", async (c) => {
 			{
 				type: "SEARCH",
 				query: query,
-				maxResults: maxResults ? parseInt(maxResults as string) : undefined,
+				maxResults: max_results ? parseInt(max_results as string) : undefined,
 			},
 			"SEARCH_RESULT"
 		);

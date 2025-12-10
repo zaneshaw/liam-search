@@ -74,18 +74,24 @@
 		{#if data.results}
 			<p class="text-gray-500 italic">found {data.results.length} results</p>
 			<div class="mx-auto flex flex-col gap-10">
-				{#each data.results as video}
+				{#each data.results as video, i}
 					<div class="flex flex-col">
-						<iframe
-							width="512"
-							height="288"
-							src="https://www.youtube-nocookie.com/embed/{video.video_id}?start={new Date(`1970-01-01T${video.time_start.split(',')[0]}.000Z`).getTime() / 1000}"
-							title=""
-							frameborder="0"
-							allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-							allowfullscreen
-							class="bg-black"
-						></iframe>
+						{#if i < 5}
+							<iframe
+								width="512"
+								height="288"
+								src="https://www.youtube-nocookie.com/embed/{video.video_id}?start={new Date(`1970-01-01T${video.time_start.split(',')[0]}.000Z`).getTime() / 1000}"
+								title=""
+								frameborder="0"
+								allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+								allowfullscreen
+								class="bg-black"
+							></iframe>
+						{:else}
+							<a href="https://www.youtube.com/watch?v={video.video_id}&t={new Date(`1970-01-01T${video.time_start.split(',')[0]}.000Z`).getTime() / 1000}" target="_blank">
+								<img src={video.thumbnail} alt="" class="h-full w-full" />
+							</a>
+						{/if}
 						<p>
 							<a href="https://www.youtube.com/watch?v={video.video_id}" target="_blank" class="font-bold">
 								{video.title}
@@ -151,15 +157,14 @@
 						</p>
 					</div>
 					<div>
-						<p class="text-white italic">why are results limited to 9?</p>
+						<p class="text-white italic">why are results limited to 30?</p>
 						<p>
-							loading a lot of youtube embeds is really laggy for some reason and has crashed my browser multiple times during development. to mitigate this, i've temporarily limited the
-							amount of results. you can bypass this limit for now by using this URL: <a
-								href="https://api.liamsear.ch/search?query=hello world&max_results=20"
-								target="_blank"
-								class="link text-sm">https://api.liamsear.ch/search?query=hello world&max_results=20</a
-							>
+							i'm not sure how many people are going to use this, so i've put a temporary limit in place so my server doesn't explode. you can bypass this limit for now by using this URL
+							(max is 99):
 						</p>
+						<a href="https://api.liamsear.ch/search?query=yo&max_results=99" target="_blank" class="link text-sm"
+							>https://api.liamsear.ch/search?query=yo&max_results=99</a
+						>
 					</div>
 					<div>
 						<p class="text-white italic">why am i getting no results?</p>
@@ -167,6 +172,10 @@
 							while punctuation like commas are ignored in the index (e.g. "hello, world" = "hello world"), internal punctuation is not (e.g. "don't" ≠ "dont"). make sure you are using
 							internal punctuation in your search query with words like "won't", "don't", "can't", etc.
 						</p>
+					</div>
+					<div>
+						<p class="text-white italic">why do only the first few results have embeds?</p>
+						<p>loading more than like 20 youtube embeds freezes your browser, so for now only the first 5 results will have a youtube embed, while the rest will just be a thumbnail.</p>
 					</div>
 				</div>
 				<div class="flex flex-col gap-2">
