@@ -3,60 +3,43 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 import { getConnInfo } from "hono/cloudflare-workers";
-import { downloadSubtitles, checkMissingSubtitles, convertSubtitles } from "./subtitleScraper";
 import { logBuffer } from "./log";
 
 // sucks
-let index: Document;
-let videos: any;
-let status: "loading" | "ready" = "loading";
+let status: "loading" | "ready" | "indexing_error" = "loading";
 
-function search(query: string, videos: any, index: Document, maxResults: number = 9) {
-	const fsResults = new FlexSearch.Resolver({
-		index: index,
-		query: query,
-		pluck: "text",
-	})
-		.resolve({
-			enrich: true,
-		})
-		.slice(0, maxResults);
+const searchWorker = new Worker("./search.ts");
 
-	const results = fsResults.map((result) => {
-		if (!result.doc) return;
+async function workerFunction(worker: Worker, message: any, resultType: string) {
+	return new Promise((resolve, reject) => {
+		const listener = (e: any) => {
+			if (e.data.type === resultType) {
+				worker.removeEventListener("message", listener);
 
-		const metadata = videos.videos.find((video: any) => video.id == result.doc!.video_id);
-
-		const textBeforeDoc = index.get((result.doc!.id as number) - 1);
-		let textBefore = null;
-		if (textBeforeDoc && textBeforeDoc.video_id == result.doc!.video_id) {
-			textBefore = textBeforeDoc.text;
-		}
-
-		const textAfterDoc = index.get((result.doc!.id as number) + 1);
-		let textAfter = null;
-		if (textAfterDoc && textAfterDoc.video_id == result.doc!.video_id) {
-			textAfter = textAfterDoc.text;
-		}
-
-		return {
-			text: result.doc!.text,
-			text_before: textBefore,
-			text_after: textAfter,
-			video_id: result.doc!.video_id,
-			time_start: result.doc!.time_start,
-			time_end: result.doc!.time_end,
-			title: metadata.title,
-			thumbnail: metadata.thumbnail,
-			uploader: metadata.uploader,
+				resolve(e.data.res);
+			}
 		};
-	});
 
-	return {
-		message: "search successful!",
-		results: results,
-	};
+		worker.addEventListener("message", listener);
+
+		worker.postMessage(message);
+	});
 }
+
+searchWorker.addEventListener("message", async (e) => {
+	const { type } = e.data;
+
+	if (type == "READY") {
+		status = "ready";
+		console.log("ready!");
+		logBuffer.push({
+			time: Date.now(),
+			text: "(SYSTEM) ready!",
+		});
+	} else if (type == "INDEXING_ERROR") {
+		status = "indexing_error";
+	}
+});
 
 const app = new Hono();
 app.use(cors());
@@ -73,7 +56,7 @@ app.get("/status", (c) => {
 });
 
 // needs validation and sanitisation
-app.get("/search", (c) => {
+app.get("/search", async (c) => {
 	const info = getConnInfo(c);
 
 	if (status != "ready") {
@@ -90,7 +73,15 @@ app.get("/search", (c) => {
 	const { query, maxResults } = c.req.query();
 
 	if (query) {
-		const res = search(query, videos, index, maxResults ? parseInt(maxResults as string) : undefined);
+		const res: any = await workerFunction(
+			searchWorker,
+			{
+				type: "SEARCH",
+				query: query,
+				maxResults: maxResults ? parseInt(maxResults as string) : undefined,
+			},
+			"SEARCH_RESULT"
+		);
 
 		logBuffer.push({
 			time: Date.now(),
@@ -110,62 +101,9 @@ app.get("/search", (c) => {
 	}
 });
 
-async function setup() {
-	await downloadSubtitles(Bun.file("videos.json"));
-	const missingSubtitlesIds = await checkMissingSubtitles(Bun.file("videos.json"));
-
-	console.log("converting subtitles...");
-	logBuffer.push({
-		time: Date.now(),
-		text: `(SYSTEM) converting subtitles...`,
-	});
-	const convertedSubtitles = await convertSubtitles();
-
-	console.log(`caching ${convertedSubtitles.length} converted subtitles...`);
-	logBuffer.push({
-		time: Date.now(),
-		text: `(SYSTEM) caching ${convertedSubtitles.length} converted subtitles...`,
-	});
-	await Bun.file("subtitles_converted_flat.json").write(JSON.stringify(convertedSubtitles));
-
-	console.log("building index...");
-	logBuffer.push({
-		time: Date.now(),
-		text: "(SYSTEM) building index...",
-	});
-
-	const index = new FlexSearch.Document({
-		tokenize: "forward",
-		context: {
-			resolution: 9,
-			depth: 2,
-			bidirectional: true,
-		},
-		encoder: FlexSearch.Charset.Normalize,
-		document: {
-			store: true,
-			index: "text",
-		},
-	});
-
-	for (const subtitle of convertedSubtitles) {
-		index.add(subtitle);
-	}
-
-	console.log("ready!");
-	logBuffer.push({
-		time: Date.now(),
-		text: "(SYSTEM) ready!",
-	});
-
-	return index;
-}
-
 serve({
 	fetch: app.fetch,
 	port: 8059,
 });
 
-index = await setup();
-videos = await Bun.file("videos.json").json();
-status = "ready";
+searchWorker.postMessage({ type: "SETUP" });
