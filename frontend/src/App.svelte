@@ -1,17 +1,53 @@
 <script lang="ts">
 	import { Search } from "lucide-svelte";
 	import { onMount } from "svelte";
+	import StatusBanner from "./lib/components/StatusBanner.svelte";
 
 	let data: any = $state(null);
+	let status: string = $state("");
+	let forceUpdateStatus = $state(true);
+
 	let searchQueryInput: HTMLInputElement;
 	let helpModal: HTMLDialogElement;
-
-	$inspect(data);
 
 	async function doSearch(query: string, maxResults?: number) {
 		const res = await fetch(`https://api.liamsear.ch/search?query=${query}&max_results=${maxResults || ""}`);
 		data = await res.json();
 	}
+
+	async function updateStatus() {
+		forceUpdateStatus = false;
+
+		try {
+			const res = await fetch("https://api.liamsear.ch/status");
+			if (res.ok) {
+				status = (await res.json()).status;
+			} else {
+				status = "api_error";
+			}
+		} catch {
+			status = "api_error";
+		}
+	}
+
+	onMount(async () => {
+		await updateStatus();
+
+		async function tryUpdateStatus() {
+			forceUpdateStatus = true;
+			if (document.hasFocus()) await updateStatus();
+		}
+
+		let updateInterval = setInterval(tryUpdateStatus, 30000);
+
+		window.addEventListener("focus", async () => {
+			if (forceUpdateStatus) {
+				clearInterval(updateInterval);
+				updateInterval = setInterval(tryUpdateStatus, 30000);
+				await updateStatus();
+			}
+		});
+	});
 </script>
 
 <main class="mx-auto flex h-screen w-[512px] flex-col gap-5 pt-10">
@@ -33,6 +69,7 @@
 		<input type="text" bind:this={searchQueryInput} autofocus class="bg-background! grow px-5 py-1" />
 		<button class="btn rounded-none! px-4!"><Search class="w-5" /></button>
 	</form>
+	<StatusBanner {status} />
 	{#if data}
 		{#if data.results}
 			<p class="text-gray-500 italic">found {data.results.length} results</p>
@@ -70,13 +107,13 @@
 			<p class="text-center text-gray-500 italic">no results</p>
 		{/if}
 	{/if}
-	<div class="mt-auto flex justify-center gap-2 pb-10 text-gray-500">
+	<footer class="mt-auto flex justify-center gap-2 py-10 text-gray-500">
 		<button onclick={() => helpModal.showModal()} class="link">help / more info</button>
 		<span>•</span>
 		<a href="https://github.com/zaneshaw/liam-search" target="_blank" class="link">source code<sup>🡥</sup></a>
 		<span>•</span>
 		<a href="https://www.twitch.tv/liam" target="_blank" class="link">liam twitch<sup>🡥</sup></a>
-	</div>
+	</footer>
 </main>
 <dialog bind:this={helpModal} class="inset-0 size-full max-h-none max-w-none bg-transparent">
 	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
@@ -86,13 +123,13 @@
 		}}
 		class="flex h-full w-full items-center justify-center bg-black/50"
 	>
-		<div class="bg-liam-background text-liam-skin flex h-1/2 w-1/3 overflow-hidden rounded-lg">
+		<div class="bg-liam-background text-liam-skin flex h-[500px] w-[650px] overflow-hidden rounded-lg">
 			<div class="flex flex-col gap-8 overflow-y-auto px-6 py-8">
 				<div class="flex flex-col gap-2">
-					<h2>about</h2>
+					<h2>bug / feedback</h2>
 					<p>
-						this website lets you search for phrases spoken on Liam's stream using transcripts from VODs uploaded to youtube from August 2023 onwards and top clip compilations back to
-						2017. the name "Liam Search" and domain name "liamsear.ch" are directly inspired by <a href="https://yardsear.ch/" target="_blank" class="link">yardsear.ch</a>.
+						if something is broken or you want to give feedback/suggest something, feel free to open an issue on
+						<a href="https://github.com/zaneshaw/liam-search/issues/new" target="_blank" class="link">github</a> or add me on discord (@zaneshaw).
 					</p>
 				</div>
 				<div class="flex flex-col gap-2">
@@ -127,8 +164,8 @@
 					<div>
 						<p class="text-white italic">why am i getting no results?</p>
 						<p>
-							while punctuation like commas are ignored in the index (e.g. "hello, world" = "hello world"), internal punctuation is not (e.g. "don't" ≠ "dont"). make sure you are using internal
-							punctuation in your search query with words like "won't", "don't", "can't", etc.
+							while punctuation like commas are ignored in the index (e.g. "hello, world" = "hello world"), internal punctuation is not (e.g. "don't" ≠ "dont"). make sure you are using
+							internal punctuation in your search query with words like "won't", "don't", "can't", etc.
 						</p>
 					</div>
 				</div>
@@ -162,6 +199,7 @@
 						"night liam"). at some point i'll let you pick between the current index and a new "strict" index.
 					</p>
 				</div>
+				<p>the name "Liam Search" and domain name "liamsear.ch" are directly inspired by <a href="https://yardsear.ch/" target="_blank" class="link">yardsear.ch</a>.</p>
 			</div>
 		</div>
 	</div>

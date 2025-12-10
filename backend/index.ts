@@ -47,10 +47,10 @@ app.use(cors());
 app.get("/status", (c) => {
 	const info = getConnInfo(c);
 
-	logBuffer.push({
-		time: Date.now(),
-		text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/status,STATUS=400) status is "${status}".`,
-	});
+	// logBuffer.push({
+	// 	time: Date.now(),
+	// 	text: `(REMOTE_IP=${info.remote.address || "UNKNOWN"},ENDPOINT=/status,STATUS=400) status is "${status}".`,
+	// });
 
 	return c.json({ status: status });
 });
