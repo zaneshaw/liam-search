@@ -38,7 +38,7 @@ searchWorker.addEventListener("message", async (e) => {
 });
 
 const app = new Hono();
-app.use(cors());
+app.use("/*", cors());
 
 app.get("/status", (c) => {
 	const info = getConnInfo(c);
