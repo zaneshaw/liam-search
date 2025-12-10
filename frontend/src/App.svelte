@@ -9,6 +9,7 @@
 
 	let searchQueryInput: HTMLInputElement;
 	let helpModal: HTMLDialogElement;
+	let helpModalContent: HTMLElement;
 
 	async function doSearch(query: string, maxResults?: number) {
 		const res = await fetch(`https://api.liamsear.ch/search?query=${query}&max_results=${maxResults || ""}`);
@@ -114,7 +115,10 @@
 		{/if}
 	{/if}
 	<footer class="mt-auto flex justify-center gap-2 py-10 text-gray-500">
-		<button onclick={() => helpModal.showModal()} class="link">help / more info</button>
+		<button onclick={() => {
+			helpModal.showModal();
+			helpModalContent.scrollTo(0, 0);
+		}} class="link">help / more info</button>
 		<span>•</span>
 		<a href="https://github.com/zaneshaw/liam-search" target="_blank" class="link">source code<sup>🡥</sup></a>
 		<span>•</span>
@@ -130,7 +134,7 @@
 		class="flex h-full w-full items-center justify-center bg-black/50"
 	>
 		<div class="bg-liam-background text-liam-skin flex h-[500px] w-[650px] overflow-hidden rounded-lg">
-			<div class="flex flex-col gap-8 overflow-y-auto px-6 py-8">
+			<div bind:this={helpModalContent} class="flex flex-col gap-8 overflow-y-auto px-6 py-8">
 				<div class="flex flex-col gap-2">
 					<h2>bug / feedback</h2>
 					<p>
