@@ -1,22 +1,13 @@
-import FlexSearch from "flexsearch";
+import { Index, MeiliSearch, type RecordAny } from "meilisearch";
 import { downloadSubtitles, checkMissingSubtitles, convertSubtitles } from "./subtitleScraper";
 import { log, LogType } from "./log";
 
 declare var self: Worker;
 
-const index = new FlexSearch.Document({
-	tokenize: "full",
-	context: {
-		resolution: 9,
-		depth: 2,
-		bidirectional: true,
-	},
-	encoder: FlexSearch.Charset.Normalize,
-	document: {
-		store: true,
-		index: "text",
-	},
+const msClient = new MeiliSearch({
+	host: "http://127.0.0.1:7700",
 });
+let index: Index<RecordAny> | null = null;
 let videos: any;
 
 async function setup() {
@@ -24,65 +15,78 @@ async function setup() {
 	const missingSubtitlesIds = await checkMissingSubtitles(Bun.file("videos.json"));
 
 	log(LogType.System, "converting subtitles...");
-	const convertedSubtitles = await convertSubtitles();
+	const subtitles = await convertSubtitles();
 
-	log(LogType.System, `caching ${convertedSubtitles.length} converted subtitles...`);
-	await Bun.file("subtitles_converted_flat.json").write(JSON.stringify(convertedSubtitles));
+	log(LogType.System, `caching ${subtitles.length} converted subtitles...`);
+	await Bun.file("subtitles_converted_flat.json").write(JSON.stringify(subtitles));
 
-	log(LogType.System, "building index...");
 
-	for (const subtitle of convertedSubtitles) {
-		index.add(subtitle);
+
+	const index = await msClient.getIndex("subtitles");
+	if (index.updatedAt && index.updatedAt.toLocaleDateString() != new Date().toLocaleDateString()) {
+		log(LogType.System, "building index...");
+
+		await msClient.deleteIndexIfExists("subtitles");
+
+		index.updateTypoTolerance({
+			minWordSizeForTypos: {
+				oneTypo: 8,
+				twoTypos: 12,
+			},
+		});
+
+		const task = await msClient.index("subtitles").addDocuments(subtitles, { primaryKey: "id" });
+
+		await msClient.tasks.waitForTask(task.taskUid, { timeout: 0 });
+	} else {
+		log(LogType.System, "index already built today. skipping...");
 	}
 
 	return index;
 }
 
-function search(query: string, maxResults: number = 30) {
-	const fsResults = new FlexSearch.Resolver({
-		index: index,
-		query: query,
-		pluck: "text",
-	})
-		.resolve({
-			enrich: true,
-		})
-		.slice(0, Math.min(maxResults, 99));
+async function search(query: string, maxResults: number = 30) {
+	if (!index) return;
 
-	const results = fsResults.map((result) => {
-		if (!result.doc) return;
-
-		const metadata = videos.videos.find((video: any) => video.id == result.doc!.video_id);
-
-		const textBeforeDoc = index.get((result.doc!.id as number) - 1);
-		let textBefore = null;
-		if (textBeforeDoc && textBeforeDoc.video_id == result.doc!.video_id) {
-			textBefore = textBeforeDoc.text;
-		}
-
-		const textAfterDoc = index.get((result.doc!.id as number) + 1);
-		let textAfter = null;
-		if (textAfterDoc && textAfterDoc.video_id == result.doc!.video_id) {
-			textAfter = textAfterDoc.text;
-		}
-
-		return {
-			text: result.doc!.text,
-			text_before: textBefore,
-			text_after: textAfter,
-			video_id: result.doc!.video_id,
-			time_start: result.doc!.time_start,
-			time_end: result.doc!.time_end,
-			title: metadata.title,
-			thumbnail: metadata.thumbnail,
-			uploader: metadata.uploader,
-		};
+	const res = await index.search(query, {
+		limit: Math.min(maxResults, 500),
+		matchingStrategy: "frequency",
+		showRankingScore: true,
+		rankingScoreThreshold: 0.85
 	});
+
+	const results = await Promise.all(
+		res.hits.map(async (result) => {
+			const metadata = videos.videos.find((video: any) => video.id == result.video_id);
+
+			const textBeforeDoc = await index!.getDocument((result.id as number) - 1);
+			let textBefore = null;
+			if (textBeforeDoc && textBeforeDoc.video_id == result.video_id) {
+				textBefore = textBeforeDoc.text;
+			}
+			const textAfterDoc = await index!.getDocument((result.id as number) + 1);
+			let textAfter = null;
+			if (textAfterDoc && textAfterDoc.video_id == result.video_id) {
+				textAfter = textAfterDoc.text;
+			}
+
+			return {
+				...result,
+				text_before: textBefore,
+				text_after: textAfter,
+				title: metadata.title,
+				thumbnail: metadata.thumbnail,
+				uploader: metadata.uploader,
+			};
+		})
+	);
 
 	postMessage({
 		type: "SEARCH_RESULT",
 		res: {
 			message: "search successful!",
+			processingTime: res.processingTimeMs,
+			estimatedTotalResults: res.estimatedTotalHits,
 			results: results,
 		},
 	});
@@ -91,7 +95,7 @@ function search(query: string, maxResults: number = 30) {
 self.addEventListener("message", async (e) => {
 	if (e.data.type == "SETUP") {
 		try {
-			await setup();
+			index = await setup();
 			videos = await Bun.file("videos.json").json();
 
 			postMessage({ type: "READY" });

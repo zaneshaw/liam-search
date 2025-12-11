@@ -73,7 +73,11 @@
 	<StatusBanner {status} />
 	{#if data}
 		{#if data.results}
-			<p class="text-gray-500 italic">found {data.results.length} results</p>
+			<p class="text-gray-500 italic">
+				<span>{data.estimatedTotalResults}{data.estimatedTotalResults >= 1000 ? "+" : ""} results</span>
+				<span>in {data.processingTime}ms</span>
+				<span>{data.results.length != data.estimatedTotalResults ? `(only ${data.results.length} shown)` : ""}</span>
+			</p>
 			<div class="mx-auto flex flex-col gap-10">
 				{#each data.results as video, i}
 					<div class="flex flex-col">
@@ -114,15 +118,21 @@
 			<p class="text-center text-gray-500 italic">no results</p>
 		{/if}
 	{/if}
-	<footer class="mt-auto flex justify-center gap-2 py-10 text-gray-500">
-		<button onclick={() => {
-			helpModal.showModal();
-			helpModalContent.scrollTo(0, 0);
-		}} class="link">help / more info</button>
-		<span>•</span>
-		<a href="https://github.com/zaneshaw/liam-search" target="_blank" class="link">source code<sup>🡥</sup></a>
-		<span>•</span>
-		<a href="https://www.twitch.tv/liam" target="_blank" class="link">liam twitch<sup>🡥</sup></a>
+	<footer class="mt-auto flex flex-col items-center gap-5 py-10 text-gray-500">
+		<span>latest update: migrated from FlexSearch to Meilisearch</span>
+		<div class="flex gap-2">
+			<button
+				onclick={() => {
+					helpModal.showModal();
+					helpModalContent.scrollTo(0, 0);
+				}}
+				class="link">help / more info</button
+			>
+			<span>•</span>
+			<a href="https://github.com/zaneshaw/liam-search" target="_blank" class="link">source code<sup>🡥</sup></a>
+			<span>•</span>
+			<a href="https://www.twitch.tv/liam" target="_blank" class="link">liam twitch<sup>🡥</sup></a>
+		</div>
 	</footer>
 </main>
 <dialog bind:this={helpModal} class="inset-0 size-full max-h-none max-w-none bg-transparent">
@@ -164,18 +174,9 @@
 						<p class="text-white italic">why are results limited to 30?</p>
 						<p>
 							i'm not sure how many people are going to use this, so i've put a temporary limit in place so my server doesn't explode. you can bypass this limit for now by using this URL
-							(max is 99):
+							(max is 500, please don't abuse):
 						</p>
-						<a href="https://api.liamsear.ch/search?query=yo&max_results=99" target="_blank" class="link text-sm"
-							>https://api.liamsear.ch/search?query=yo&max_results=99</a
-						>
-					</div>
-					<div>
-						<p class="text-white italic">why am i getting no results?</p>
-						<p>
-							while punctuation like commas are ignored in the index (e.g. "hello, world" = "hello world"), internal punctuation is not (e.g. "don't" ≠ "dont"). make sure you are using
-							internal punctuation in your search query with words like "won't", "don't", "can't", etc.
-						</p>
+						<a href="https://api.liamsear.ch/search?query=yo&max_results=99" target="_blank" class="link text-sm">https://api.liamsear.ch/search?query=yo&max_results=99</a>
 					</div>
 					<div>
 						<p class="text-white italic">why do only the first few results have embeds?</p>
@@ -196,25 +197,11 @@
 						<li>srt subtitles are downloaded from these videos with yt-dlp</li>
 						<li>
 							the srt files are merged together to form a large json file (~150 MB) containing the text, start time, and video id of each subtitle chunk (a chunk is the highlighted text
-							when you search something).
+							when you search something)
 						</li>
-						<li>
-							<a href="https://github.com/nextapps-de/flexsearch" target="_blank" class="link">FlexSearch</a> then indexes each subtitle chunk and stores the index in memory with the following
-							configuration:
-						</li>
-						<pre class="italic">
-&#123;
-	tokenize: "forward",
-	context: &#123; resolution: 9, depth: 2, bidirectional: true &#125;,
-	encoder: FlexSearch.Charset.Normalize,
-	document: &#123; store: true, index: "text" &#125;,
-&#125;</pre>
+						<li>i then use <a href="https://github.com/meilisearch/meilisearch" target="_blank" class="link">Meilisearch</a> to index each subtitle chunk locally</li>
 						<li>this process is repeated every day at 12:00 AM AEST</li>
 					</ol>
-					<p>
-						note: indexing does not account for repeated tokens/words as FlexSearch's "Normalize" encoder preset combines these into a single word (e.g. "night night liam" is equivalent to
-						"night liam"). at some point i'll let you pick between the current index and a new "strict" index.
-					</p>
 				</div>
 				<p>the name "Liam Search" and domain name "liamsear.ch" are directly inspired by <a href="https://yardsear.ch/" target="_blank" class="link">yardsear.ch</a>.</p>
 			</div>

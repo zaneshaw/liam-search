@@ -14,8 +14,8 @@
   "type": "module",
   "dependencies": {
     "@hono/node-server": "^1.19.6",
-    "flexsearch": "^0.8.212",
     "hono": "^4.10.7",
+    "meilisearch": "^0.54.0",
     "yt-dlp-wrap": "^2.3.12"
   }
 }
