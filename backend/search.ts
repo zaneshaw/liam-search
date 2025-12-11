@@ -5,7 +5,7 @@ import { log, LogType } from "./log";
 declare var self: Worker;
 
 const msClient = new MeiliSearch({
-	host: "http://127.0.0.1:7700",
+	host: "http://192.168.0.88:7700",
 });
 let index: Index<RecordAny> | null = null;
 let videos: any;

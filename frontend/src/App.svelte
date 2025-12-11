@@ -12,7 +12,7 @@
 	let helpModalContent: HTMLElement;
 
 	async function doSearch(query: string, maxResults?: number) {
-		const res = await fetch(`https://api.liamsear.ch/search?query=${query}&max_results=${maxResults || ""}`);
+		const res = await fetch(`${import.meta.env.VITE_API_URL}/search?query=${query}&max_results=${maxResults || ""}`);
 		data = await res.json();
 	}
 
@@ -20,7 +20,7 @@
 		forceUpdateStatus = false;
 
 		try {
-			const res = await fetch("https://api.liamsear.ch/status");
+			const res = await fetch(`${import.meta.env.VITE_API_URL}/status`);
 			if (res.ok) {
 				status = (await res.json()).status;
 			} else {
