@@ -67,7 +67,7 @@
 		class="light-outline flex overflow-clip rounded-full outline-1 has-[input:focus]:outline-blue-500!"
 	>
 		<!-- svelte-ignore a11y_autofocus -->
-		<input type="text" bind:this={searchQueryInput} autofocus class="bg-background! grow px-5 py-1" />
+		<input type="text" bind:this={searchQueryInput} autofocus placeholder="use double quotes to search a phrase (&quot;am i live&quot;)" class="bg-background! grow px-5 py-1" />
 		<button class="btn rounded-none! px-4!"><Search class="w-5" /></button>
 	</form>
 	<StatusBanner {status} />
