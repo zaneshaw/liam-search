@@ -72,7 +72,7 @@
 	</form>
 	<StatusBanner {status} />
 	{#if data}
-		{#if data.results}
+		{#if data.results?.length > 0}
 			{#snippet resultsText()}
 				<span class="text-gray-500 italic"
 					>{data.resultsPerPage * (data.page - 1) + 1}-{Math.min(data.resultsPerPage * data.page, data.totalResults)} of {data.totalResults} results ({data.totalPages} pages)</span
