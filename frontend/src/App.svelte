@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Search } from "lucide-svelte";
+	import { ArrowLeft, ArrowLeftToLine, ArrowRight, ArrowRightToLine, Search } from "lucide-svelte";
 	import { onMount } from "svelte";
 	import StatusBanner from "./lib/components/StatusBanner.svelte";
 
@@ -11,8 +11,8 @@
 	let helpModal: HTMLDialogElement;
 	let helpModalContent: HTMLElement;
 
-	async function doSearch(query: string, maxResults?: number) {
-		const res = await fetch(`${import.meta.env.VITE_API_URL}/search?query=${query}&max_results=${maxResults || ""}`);
+	async function doSearch(query: string, page?: number) {
+		const res = await fetch(`${import.meta.env.VITE_API_URL}/search?query=${query}&page=${page}`);
 		data = await res.json();
 	}
 
@@ -62,30 +62,77 @@
 	<form
 		onsubmit={(e) => {
 			e.preventDefault();
-			doSearch(searchQueryInput.value);
+			doSearch(searchQueryInput.value, 1);
 		}}
 		class="light-outline flex overflow-clip rounded-full outline-1 has-[input:focus]:outline-blue-500!"
 	>
 		<!-- svelte-ignore a11y_autofocus -->
-		<input type="text" bind:this={searchQueryInput} autofocus placeholder="use double quotes to search a phrase (&quot;am i live&quot;)" class="bg-background! grow px-5 py-1" />
+		<input type="text" bind:this={searchQueryInput} autofocus placeholder="use double quotes to search an exact phrase" class="bg-background! grow px-5 py-1 placeholder:text-gray-500" />
 		<button class="btn rounded-none! px-4!"><Search class="w-5" /></button>
 	</form>
 	<StatusBanner {status} />
 	{#if data}
 		{#if data.results}
-			<p class="text-gray-500 italic">
-				<span>{data.estimatedTotalResults}{data.estimatedTotalResults >= 1000 ? "+" : ""} results</span>
-				<span>in {data.processingTime}ms</span>
-				<span>{data.results.length != data.estimatedTotalResults ? `(only ${data.results.length} shown)` : ""}</span>
-			</p>
+			{#snippet resultsText()}
+				<span class="text-gray-500 italic"
+					>{data.resultsPerPage * (data.page - 1) + 1}-{Math.min(data.resultsPerPage * data.page, data.totalResults)} of {data.totalResults} results ({data.totalPages} pages)</span
+				>
+			{/snippet}
+			{#snippet pageList()}
+				<div class="flex items-center justify-center gap-2">
+					<div class="flex gap-1">
+						<button
+							disabled={data.page == 1}
+							onclick={() => doSearch(searchQueryInput.value, 1)}
+							title="first page"
+							class="text-gray-400 not-disabled:cursor-pointer not-disabled:hover:text-white disabled:text-gray-600"><ArrowLeftToLine /></button
+						>
+						<button
+							disabled={data.page == 1}
+							onclick={() => doSearch(searchQueryInput.value, data.page - 1)}
+							title="previous page (page {data.page - 1})"
+							class="text-gray-400 not-disabled:cursor-pointer not-disabled:hover:text-white disabled:text-gray-600"><ArrowLeft class="size-[22px]" /></button
+						>
+					</div>
+					<div class="flex">
+						{#each Array.from({ length: data.totalPages }) as _, i}
+							{@const number = i + 1}
+							{@const centre = Math.min(Math.max(2 + 1, data.page), data.totalPages - 2)}
+							{#if Math.abs(number - centre) <= 2}
+								<button onclick={() => doSearch(searchQueryInput.value, number)} title="page {number}" class="size-7 cursor-pointer">
+									<span class={number == data.page ? "text-white" : "text-gray-500"}>{number}</span>
+								</button>
+							{/if}
+						{/each}
+					</div>
+					<div class="flex gap-1">
+						<button
+							disabled={data.page == data.totalPages}
+							onclick={() => doSearch(searchQueryInput.value, data.page + 1)}
+							title="next page (page {data.page + 1})"
+							class="text-gray-400 not-disabled:cursor-pointer not-disabled:hover:text-white disabled:text-gray-600"><ArrowRight class="size-[22px]" /></button
+						>
+						<button
+							disabled={data.page == data.totalPages}
+							onclick={() => doSearch(searchQueryInput.value, data.totalPages)}
+							title="last page (page {data.totalPages})"
+							class="text-gray-400 not-disabled:cursor-pointer not-disabled:hover:text-white disabled:text-gray-600"><ArrowRightToLine /></button
+						>
+					</div>
+				</div>
+			{/snippet}
+
+			{@render resultsText()}
+			{@render pageList()}
 			<div class="mx-auto flex flex-col gap-10">
 				{#each data.results as video, i}
+					{@const timestamp = new Date(`1970-01-01T${video.time_start.split(",")[0]}.000Z`).getTime() / 1000}
 					<div class="flex flex-col">
 						{#if i < 5}
 							<iframe
 								width="512"
 								height="288"
-								src="https://www.youtube-nocookie.com/embed/{video.video_id}?start={new Date(`1970-01-01T${video.time_start.split(',')[0]}.000Z`).getTime() / 1000}"
+								src="https://www.youtube.com/embed/{video.video_id}?start={timestamp}"
 								title=""
 								frameborder="0"
 								allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -93,7 +140,7 @@
 								class="bg-black"
 							></iframe>
 						{:else}
-							<a href="https://www.youtube.com/watch?v={video.video_id}&t={new Date(`1970-01-01T${video.time_start.split(',')[0]}.000Z`).getTime() / 1000}" target="_blank">
+							<a href="https://www.youtube.com/watch?v={video.video_id}&t={timestamp}" target="_blank">
 								<img src={video.thumbnail} alt="" class="h-full w-full" />
 							</a>
 						{/if}
@@ -102,11 +149,7 @@
 								{video.title}
 							</a>
 							<span class="text-gray-500">at</span>
-							<a
-								href="https://www.youtube.com/watch?v={video.video_id}&t={new Date(`1970-01-01T${video.time_start.split(',')[0]}.000Z`).getTime() / 1000}"
-								target="_blank"
-								class="text-blue-500 hover:text-blue-400"
-							>
+							<a href="https://www.youtube.com/watch?v={video.video_id}&t={timestamp}" target="_blank" class="text-blue-500 hover:text-blue-400">
 								{video.time_start.split(",")[0]}
 							</a>
 						</p>
@@ -114,12 +157,14 @@
 					</div>
 				{/each}
 			</div>
+			{@render pageList()}
+			<div class="flex justify-center">{@render resultsText()}</div>
 		{:else}
 			<p class="text-center text-gray-500 italic">no results</p>
 		{/if}
 	{/if}
 	<footer class="mt-auto flex flex-col items-center gap-5 py-10 text-gray-500">
-		<span>latest update: migrated from FlexSearch to Meilisearch</span>
+		<span>latest update: pagination. you can now see up to 1000 results.</span>
 		<div class="flex gap-2">
 			<button
 				onclick={() => {
@@ -171,20 +216,8 @@
 						</p>
 					</div>
 					<div>
-						<p class="text-white italic">why are results limited to 30?</p>
-						<p>
-							i'm not sure how many people are going to use this, so i've put a temporary limit in place so my server doesn't explode. you can bypass this limit for now by using this URL
-							(max is 500, please don't abuse):
-						</p>
-						<a href="https://api.liamsear.ch/search?query=yo&max_results=99" target="_blank" class="link text-sm">https://api.liamsear.ch/search?query=yo&max_results=99</a>
-					</div>
-					<div>
 						<p class="text-white italic">why do only the first few results have embeds?</p>
 						<p>loading more than like 20 youtube embeds freezes your browser, so for now only the first 5 results will have a youtube embed, while the rest will just be a thumbnail.</p>
-					</div>
-					<div>
-						<p class="text-white italic">why are results not updating?</p>
-						<p>i have a rate limit in place that limits requests to the '/search' endpoint to 5 every 10 seconds. if you exceed this, you get temporarily blocked for 10 seconds.</p>
 					</div>
 				</div>
 				<div class="flex flex-col gap-2">

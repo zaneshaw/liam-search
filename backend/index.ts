@@ -59,7 +59,7 @@ app.get("/search", async (c) => {
 		return c.json({ message: "api is not ready" });
 	}
 
-	const { query, max_results } = c.req.query();
+	const { query, page } = c.req.query();
 
 	if (query) {
 		const res: any = await workerFunction(
@@ -67,12 +67,16 @@ app.get("/search", async (c) => {
 			{
 				type: "SEARCH",
 				query: query,
-				maxResults: max_results ? parseInt(max_results as string) : undefined,
+				page: parseInt(page || "1"),
 			},
 			"SEARCH_RESULT"
 		);
 
-		log(LogType.API, `${res.message} ${res.results.length} results for '${query}'.`, { remote_ip: info.remote.address || "UNKNOWN", endpoint: "/search", status: "200" });
+		log(LogType.API, `${res.message} ${res.resultsPerPage * (res.page - 1) + 1}-${Math.min(res.resultsPerPage * res.page, res.totalResults)} of ${res.totalResults} results for '${query}'.`, {
+			remote_ip: info.remote.address || "UNKNOWN",
+			endpoint: "/search",
+			status: "200",
+		});
 
 		return c.json(res);
 	} else {

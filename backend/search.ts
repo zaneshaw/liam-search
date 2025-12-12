@@ -20,8 +20,6 @@ async function setup() {
 	log(LogType.System, `caching ${subtitles.length} converted subtitles...`);
 	await Bun.file("subtitles_converted_flat.json").write(JSON.stringify(subtitles));
 
-
-
 	const index = await msClient.getIndex("subtitles");
 	if (index.updatedAt && index.updatedAt.toLocaleDateString() != new Date().toLocaleDateString()) {
 		log(LogType.System, "building index...");
@@ -45,14 +43,16 @@ async function setup() {
 	return index;
 }
 
-async function search(query: string, maxResults: number = 30) {
+async function search(query: string, page: number = 1) {
 	if (!index) return;
 
 	const res = await index.search(query, {
-		limit: Math.min(maxResults, 500),
+		limit: 1000,
 		matchingStrategy: "frequency",
 		showRankingScore: true,
-		rankingScoreThreshold: 0.85
+		rankingScoreThreshold: 0.85,
+		hitsPerPage: 30,
+		page: page,
 	});
 
 	const results = await Promise.all(
@@ -86,7 +86,10 @@ async function search(query: string, maxResults: number = 30) {
 		res: {
 			message: "search successful!",
 			processingTime: res.processingTimeMs,
-			estimatedTotalResults: res.estimatedTotalHits,
+			totalResults: res.totalHits,
+			totalPages: res.totalPages,
+			resultsPerPage: res.hitsPerPage,
+			page: res.page,
 			results: results,
 		},
 	});
@@ -104,6 +107,6 @@ self.addEventListener("message", async (e) => {
 			postMessage({ type: "INDEXING_ERROR" });
 		}
 	} else if (e.data.type == "SEARCH") {
-		search(e.data.query, e.data.maxResults);
+		search(e.data.query, e.data.page);
 	}
 });
