@@ -191,6 +191,10 @@
 		<div class="bg-liam-background text-liam-skin flex h-[500px] w-[650px] overflow-hidden rounded-lg">
 			<div bind:this={helpModalContent} class="flex flex-col gap-8 overflow-y-auto px-6 py-8">
 				<div class="flex flex-col gap-2">
+					<h2>privacy statement</h2>
+					<p>i log search queries and IP addresses solely to prevent abuse. i don't sell or share these logs with third parties. by using Liam Search, you consent to this collection.</p>
+				</div>
+				<div class="flex flex-col gap-2">
 					<h2>bug / feedback</h2>
 					<p>
 						if something is broken or you want to give feedback/suggest something, feel free to open an issue on
