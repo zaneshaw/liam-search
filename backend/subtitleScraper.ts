@@ -78,7 +78,14 @@ async function loadVideoMetadata(file: Bun.BunFile) {
 
 	log(LogType.System, `writing to ${file.name}...`);
 
-	await file.write(JSON.stringify(videos, null, "\t"));
+	let json: any;
+	try {
+		json = JSON.stringify(videos, null, "\t");
+	} catch {
+		throw new Error("json parse failed while loading metadata");
+	}
+
+	await file.write(json);
 
 	return videos;
 }
