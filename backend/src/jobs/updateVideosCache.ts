@@ -1,16 +1,23 @@
+import { Job, JobResult } from "@zaneshaw/squeue";
 import type { PlaylistInfo, VideoInfo } from "ytdlp-nodejs";
 
 import config from "../config";
 import { db } from "../db";
 import { log } from "../log";
 import { ytdlp } from "../main";
-import { Job, JobResult } from "@zaneshaw/squeue";
 import type { VideoCache, VideoMetadata } from "../types";
 
 async function fetchVideoInfo(playlistURLs: string[]) {
 	const videosInfo = [];
 	for (const url of playlistURLs) {
-		const playlistInfo = (await ytdlp.getInfoAsync(url, { cookies: config.core.cookies_path })) as PlaylistInfo;
+		const res = await ytdlp.execAsync(url, {
+			dumpSingleJson: true,
+			flatPlaylist: true,
+			cookies: config.core.cookies_path,
+			extractorArgs: { youtube: ["player_client=android"] },
+		});
+		const playlistInfo = JSON.parse(res.output) as PlaylistInfo;
+
 		videosInfo.push(...playlistInfo.entries);
 	}
 
@@ -39,13 +46,27 @@ async function updateVideosCache(videoMetadata: VideoMetadata[]) {
 
 			if (cachedVideo) {
 				if (Date.now() > cachedVideo.cacheTimestamp + 14 * 24 * 60 * 60 * 1000) {
-					const videoInfo = (await ytdlp.getInfoAsync(`https://www.youtube.com/watch?v=${video.id}`, { cookies: config.core.cookies_path })) as VideoInfo;
+					const res = await ytdlp.execAsync(`https://www.youtube.com/watch?v=${video.id}`, {
+						dumpSingleJson: true,
+						flatPlaylist: true,
+						cookies: config.core.cookies_path,
+						extractorArgs: { youtube: ["player_client=android"] },
+					});
+					const videoInfo = JSON.parse(res.output) as VideoInfo;
+
 					video.uploadTimestamp = videoInfo.timestamp * 1000;
 
 					db.query(`update videos set title = ?, viewCount = ?, cacheTimestamp = ? where id = ?`).run(videoInfo.title, videoInfo.view_count, Date.now(), video.id);
 				}
 			} else {
-				const videoInfo = (await ytdlp.getInfoAsync(`https://www.youtube.com/watch?v=${video.id}`, { cookies: config.core.cookies_path })) as VideoInfo;
+				const res = await ytdlp.execAsync(`https://www.youtube.com/watch?v=${video.id}`, {
+					dumpSingleJson: true,
+					flatPlaylist: true,
+					cookies: config.core.cookies_path,
+					extractorArgs: { youtube: ["player_client=android"] },
+				});
+				const videoInfo = JSON.parse(res.output) as VideoInfo;
+
 				video.uploadTimestamp = videoInfo.timestamp * 1000;
 
 				const query = db.query(`insert into videos values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
